@@ -1,0 +1,8 @@
+very strict - angle 90
+strict - angle 85
+semi-strict - angle 75
+regular - angle 60
+semi-lazy - angle 45
+lazy - angle 30
+very-lazy - angle 15
+off - angle 0

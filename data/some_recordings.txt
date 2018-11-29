@@ -1,0 +1,85 @@
+Running with the following parameters:
+profit_min 8000000
+profit_max 30000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+value_min 0
+value_max 0
+level_min 28
+level_max 30
+tier_min 5
+tier_max 7
+Comparison on price to time ratio.
+([(30,5),(30,5),(30,5),(30,6)],9153000,681897.3199999998)
+
+profit_min 10000000
+profit_max 50000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+value_min 0
+value_max 0
+level_min 28
+level_max 30
+tier_min 5
+tier_max 8
+Comparison on price to time ratio.
+([(30,6),(30,6),(30,5),(30,5)],15606000,714356.2399999999)
+
+Running with the following parameters:
+profit_min 30000000
+profit_max 50000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+value_min 0
+value_max 0
+level_min 28
+level_max 30
+tier_min 5
+tier_max 8
+Comparison on price to time ratio.
+([(30,5),(30,5),(30,5),(30,7)],45117000,714357.8)
+
+Running with the following parameters:
+profit_min 50000000
+profit_max 100000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+value_min 0
+value_max 0
+level_min 28
+level_max 30
+tier_min 5
+tier_max 8
+Comparison on price to time ratio.
+([(30,5),(30,5),(30,6),(30,7)],51570000,746816.72)
+
+To compare:
+([(27,5),(27,5),(27,6),(27,7)],49059000,567362.744)
+
+Running with the following parameters:
+profit_min 50000000
+profit_max 100000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+value_min 0
+value_max 0
+level_min 28
+level_max 30
+tier_min 6
+tier_max 8
+Comparison on price to time ratio.
+([(30,6),(30,6),(30,6),(30,7)],64476000,811734.5599999998)
+
+Running with the following parameters:
+profit_min 50000000
+profit_max 100000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+value_min 0
+value_max 0
+level_min 28
+level_max 30
+tier_min 7
+tier_max 8
+Comparison on price to time ratio.
+*** Exception: Prelude.foldl1: empty list

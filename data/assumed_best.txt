@@ -1,0 +1,15 @@
+Running with the following parameters:
+profit_min 50000000
+profit_max 10000000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+time_max 0.0
+value_min 0
+value_max 0
+level_min 10
+level_max 30
+tier_min 5
+tier_max 7
+Comparison on price to time ratio.
+Assumed best: ([(27,5),(27,5),(27,6),(27,7)],49059000,  567362.744)
+([(10,7),(10,7),(10,7),(10,7)],              117936000,  68544.31999999999)

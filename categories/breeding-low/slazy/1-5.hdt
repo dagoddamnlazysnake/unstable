@@ -1,0 +1,25 @@
+[(15,4),(15,5),(16,4),(16,5),(17,4),(17,5),(18,4),(18,5),(19,4),(19,5),(20,4),(20,5),(21,4),(21,5),(22,4),(22,5),(23,4),(23,5),(24,4),(24,5),(25,4),(25,5),(26,4),(26,5),(27,4),(27,5)]
+26
+Running with the following parameters:
+profit_min 1000000
+profit_max 5000000
+global_tick_exp 500
+global_time_bw_ticks 10.4
+time_max 0.0
+value_min 0
+value_max 0
+level_min 15
+level_max 27
+tier_min 4
+tier_max 7
+angle 45.0
+Comparison on price to time ratio.
+Assumed best: ([(15,4),(15,4),(15,4),(15,4)],1026000,96649.27) (ignored)
+
+Result:
+([(15,5),(15,5),(15,5),(15,5)],1890000,120783.94)
+Using (minlevel,maxlevel) as (15,15)
+The minimal breed combinations that guarantee the least chance to drop tiers are as follows:
+((15,5),(15,5),[("f",4,6),("m",5,19),("f",5,23),("m",6,19),("f",6,23),("m",7,10)])
+"- - - - - - - - - - -"
+(257.48 secs, 63,526,079,408 bytes)
