@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>[BDO] Horse Calculator</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+<body>
+<script>
+/**
+Determine the breeding grade (that determines the result tier) for two horses
+*/
+function breedingGrade( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+
+  var grades = {
+    0: [0,0],
+    1: [165,	195],
+    2: [230,	260],
+    3: [295,	325],
+    4: [360,	390],
+    5: [425,	455],
+    6: [490,	520],
+    7: [555,	585],
+    8: [620,	650]
+  }
+  
+  var apprate = 14;
+
+  return (
+    ( (grades[maleTier][0]   + maleLevel   * apprate) * (100 - maleDeaths   * 0.5) ) +
+    ( (grades[femaleTier][1] + femaleLevel * apprate) * (100 - femaleDeaths * 0.5) )
+  )/2/100;
+}
+/*
+* Get the result tier for breeding 2 horses
+*/
+function breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+  return Math.floor( breedingGrade( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) / 50 );
+}
+
+function breedingOutcomeForResultTier( tier ) {
+
+var levelGrades = [
+  { min: 165, max: 195,tier: 1, gender: 'm' },
+  { min: 195, max: 230,tier: 1, gender: 'f' },
+  { min: 230, max: 260,tier: 2, gender: 'm' },
+  { min: 260, max: 295,tier: 2, gender: 'f' },
+  { min: 295, max: 325,tier: 3, gender: 'm' },
+  { min: 325, max: 360,tier: 3, gender: 'f' },
+  { min: 360, max: 390,tier: 4, gender: 'm' },
+  { min: 390, max: 425,tier: 4, gender: 'f' },
+  { min: 425, max: 455,tier: 5, gender: 'm' },
+  { min: 455, max: 490,tier: 5, gender: 'f' },
+  { min: 490, max: 520,tier: 6, gender: 'm' },
+  { min: 520, max: 555,tier: 6, gender: 'f' },
+  { min: 555, max: 585,tier: 7, gender: 'm' },
+  { min: 585, max: 620,tier: 7, gender: 'f' },
+  { min: 620, max: 650,tier: 8, gender: 'm' },
+  { min: 650, max: 685,tier: 8, gender: 'f' },
+];
+
+var resultGrades = [
+  { breeding: 0,   minGrade: 155, maxGrade: 166 },
+  { breeding: 50,  minGrade: 175, maxGrade: 197 },
+  { breeding: 100, minGrade: 195, maxGrade: 228 },
+  { breeding: 150, minGrade: 215, maxGrade: 259 },
+  { breeding: 200, minGrade: 235, maxGrade: 290 },
+  { breeding: 250, minGrade: 255, maxGrade: 321 },
+  { breeding: 300, minGrade: 275, maxGrade: 352 },
+  { breeding: 350, minGrade: 295, maxGrade: 383 },
+  { breeding: 400, minGrade: 315, maxGrade: 414 },
+  { breeding: 450, minGrade: 335, maxGrade: 445 },
+  { breeding: 500, minGrade: 355, maxGrade: 476 },
+  { breeding: 550, minGrade: 375, maxGrade: 507 },
+  { breeding: 600, minGrade: 395, maxGrade: 538 },
+  { breeding: 650, minGrade: 415, maxGrade: 569 },
+  { breeding: 700, minGrade: 435, maxGrade: 600 },
+  { breeding: 750, minGrade: 455, maxGrade: 600 },
+  { breeding: 800, minGrade: 475, maxGrade: 600 },
+  { breeding: 850, minGrade: 495, maxGrade: 630 },
+  { breeding: 900, minGrade: 515, maxGrade: 660 },
+  { breeding: 950, minGrade: 535, maxGrade: 660 },
+  { breeding: 1000,minGrade: 555, maxGrade: 660 },
+  { breeding: 1000,minGrade: 555, maxGrade: 660 } // Result tier 21 : This is unconfirmed
+];
+
+  var grade = resultGrades[tier];
+  if( grade === undefined ) {
+    return [];
+  }
+  var min = grade.minGrade;
+  var max = grade.maxGrade;
+  
+  var outcomes = [];
+
+  for( var i in levelGrades ) {
+    var g = levelGrades[i];
+    
+    // Fully contained
+    if( g.max < max && g.min >= min ) {
+      outcomes.push( {grade:g, tier: g.tier, gender: g.gender, probability: (g.max-g.min)/(max+1-min), percentage: Math.floor(100*(g.max-g.min)/(max+1-min)), percentage_precise: (100*(g.max-g.min)/(max+1-min)) } );
+     
+    // Overlaps bottom of result tier
+    } else if( g.min < min && g.max > min ) {
+      outcomes.push( {grade:g, tier: g.tier, gender: g.gender, probability: (g.max-min)/(max+1-min), percentage: Math.floor(100*(g.max-min)/(max+1-min)), percentage_precise: (100*(g.max-min)/(max+1-min)) } );
+    
+    // Overlaps top of result tier
+    } else if( g.max >= max && g.min < max ) {
+      outcomes.push( {grade:g, tier: g.tier, gender: g.gender, probability: (max-g.min+1)/(max+1-min), percentage: Math.floor(100*(max-g.min+1)/(max+1-min)), percentage_precise: (100*(max-g.min+1)/(max+1-min)) } );
+    }
+  }
+
+	var sumFn = (a, b) => { return a + b};
+	var mapFn = (a) => { return a.percentage };
+	var justInCaseItRunsAway = 0;
+  
+	var sortedOutcomes = outcomes.slice();
+	// While the %s don't add up to 100..
+	while( 100 > sortedOutcomes.map( mapFn ).reduce( sumFn, 0 ) && justInCaseItRunsAway < 40) {
+
+		// .. add 1 to the % that 
+		sortedOutcomes.sort( (a,b) => {
+			if( a.percentage_precise <= a.percentage ) {
+				return true;
+			}
+			if( b.percentage_precise <= b.percentage ) {
+				return false;
+			}
+			return (a.percentage_precise % 1) < (b.percentage_precise % 1);
+		})
+		sortedOutcomes[0].percentage++;
+		justInCaseItRunsAway++;
+	}
+  return outcomes;
+}
+function breedingOutcome( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+  return breedingOutcomeForResultTier(breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ));
+}
+function breedingOutcomeFormatted( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+  var outcomes = breedingOutcomeForResultTier(breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ));
+  var str = "";
+  for( var i in outcomes ) {
+    str += outcomes[i].tier + outcomes[i].gender.toUpperCase() + "(" + Math.round( outcomes[i].probability*100 ) + "%) ";
+  }
+  return str;
+}
+function breedingOutcomeForResultTierFormatted( tier ) {
+  var outcomes = breedingOutcomeForResultTier(tier);
+  var str = "";
+  for( var i in outcomes ) {
+    str += outcomes[i].tier + outcomes[i].gender.toUpperCase() + "(" + Math.round( outcomes[i].probability*100 ) + "%) ";
+  }
+  return str;
+}
+function getMaleLevelNeededForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+  return getLevelNeededForNextTier( 'm', maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+}
+function getFemaleLevelNeededForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+  return getLevelNeededForNextTier( 'f', maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+}
+function getLevelNeededForNextTier( gender, maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+  var currentTier = breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+	var newTier;
+  while( ( gender == 'm' ? maleLevel : femaleLevel ) < 30 ) {
+    
+    if( gender == 'm' ) {
+      maleLevel++;
+    } else {
+      femaleLevel++;
+    }
+    newTier = breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+    //Logger.log( [ newTier, maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ] );
+    if( newTier > currentTier ) {
+      return ( gender == 'm' ? maleLevel : femaleLevel );
+    }
+  }
+  return -1;
+}
+/*
+We're going to step diagonally down the tier grid to get the next level bounday.
+Its not optimal, but if poeple want to get the optimal levels they can consult the chart
+*/
+function getJointLevelNeededForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+var i = 0;
+
+  var currentTier = breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+	var newTier;
+  while( maleLevel <= 30 && femaleLevel <= 30 && i++ < 100 ) {
+		var downTier = breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, Math.min(30,femaleLevel+1), femaleDeaths );
+		var acrossTier = breedingTier( maleTier, Math.min(30,maleLevel+1), maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+		var downAcrossTier = breedingTier( maleTier, Math.min(30,maleLevel+1), maleDeaths, femaleTier, Math.min(30,femaleLevel+1), femaleDeaths );
+
+		if( downTier > currentTier ) {
+			return {male: maleLevel, female: Math.min(30,femaleLevel+1)};
+		}
+		if( acrossTier > currentTier ) {
+			return {male: Math.min(30,maleLevel+1), female: femaleLevel};
+		}
+    if( downAcrossTier > currentTier ) {
+      return {male: Math.min(30,maleLevel+1), female: Math.min(30,femaleLevel+1)};
+    }
+		
+		if( maleLevel == 30 && femaleLevel == 30 ) {
+			return false;
+		}
+		maleLevel = Math.min(30,maleLevel+1);
+		femaleLevel = Math.min(30,femaleLevel+1);
+  }
+  return false;
+}
+function getLevelsRequiredForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths ) {
+	var results = [];
+	
+	var bothGenderResults = getJointLevelNeededForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+	if( bothGenderResults ) {
+		results.push( bothGenderResults );
+	}
+	// Get the levels required for next tier if breeding only male/female
+	var maleOnlyResults = getMaleLevelNeededForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+	if( maleOnlyResults > 0 ) {
+		results.push( {male:maleOnlyResults,female:femaleLevel});
+	}
+	
+	// Get the levels required for next tier if breeding only male/female
+	var femaleOnlyResults = getFemaleLevelNeededForNextTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths );
+	if( femaleOnlyResults > 0 ) {
+		results.push( {male:maleLevel,female:femaleOnlyResults});
+	}
+	return Array.from(new Set(results));
+}
+
+function getHorseSkinInfo() {
+var info = [
+	{
+		"tier": 1,
+		"key": "A",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/95/bc/6a/95bc6a47f7958135c480b4d6cea5a976.jpg",
+		"xp_to_level": 2605,
+		"colors": {
+			"red": 1,
+			"white": 0,
+			"black": 0
+		},
+		"stats": {
+			"speed": 103,
+			"accel": 103,
+			"turn": 103,
+			"brake": 103,
+			"health": 1090,
+			"stamina": 3280,
+			"carryweight": 90
+		},
+		"gameids": [
+			9862,
+			9962
+		]
+	},
+	{
+		"tier": 1,
+		"key": "B",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/1d/aa/cd/1daacdb0abd198eacc31f5e91ceaaa62.jpg",
+		"xp_to_level": 2605,
+		"colors": {
+			"red": 1,
+			"white": 1,
+			"black": 1
+		},
+		"stats": {
+			"speed": 109,
+			"accel": 109,
+			"turn": 109,
+			"brake": 109,
+			"health": 1270,
+			"stamina": 3279.6,
+			"carryweight": 90
+		},
+		"gameids": [
+			9803,
+			9903
+		]
+	},
+	{
+		"tier": 2,
+		"key": "B",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/89/9e/87/899e87a55edf57bbe4eea2aa9ce5724e.jpg",
+		"xp_to_level": 5105,
+		"colors": {
+			"red": 2,
+			"white": 0,
+			"black": 1
+		},
+		"stats": {
+			"speed": 107.5,
+			"accel": 107.5,
+			"turn": 110.5,
+			"brake": 110.5,
+			"health": 1279,
+			"stamina": 3388,
+			"carryweight": 135
+		},
+		"gameids": [
+			9863,
+			9963
+		]
+	},
+	{
+		"tier": 2,
+		"key": "A",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/ab/b7/a3/abb7a35e0477507a120a741368a0384a.jpg",
+		"xp_to_level": 5105,
+		"colors": {
+			"red": 2,
+			"white": 1,
+			"black": 1
+		},
+		"stats": {
+			"speed": 112,
+			"accel": 112,
+			"turn": 112,
+			"brake": 112,
+			"health": 1360,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9807,
+			9907
+		]
+	},
+	{
+		"tier": 2,
+		"key": "D",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/3e/2b/be/3e2bbeb6262cf9371312b00cb53ec97f.jpg",
+		"xp_to_level": 5105,
+		"colors": {
+			"red": 2,
+			"white": 1,
+			"black": 0
+		},
+		"stats": {
+			"speed": 110.5,
+			"accel": 110.5,
+			"turn": 107.5,
+			"brake": 107.5,
+			"health": 1261,
+			"stamina": 3416,
+			"carryweight": 135
+		},
+		"gameids": [
+			9864,
+			9964
+		]
+	},
+	{
+		"tier": 2,
+		"key": "C",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/1c/e3/a0/1ce3a0ce8cb1fb7ff6f314b13c80380b.jpg",
+		"xp_to_level": 5105,
+		"colors": {
+			"red": 1,
+			"white": 0,
+			"black": 2
+		},
+		"stats": {
+			"speed": 106,
+			"accel": 106,
+			"turn": 112,
+			"brake": 112,
+			"health": 1288,
+			"stamina": 3252,
+			"carryweight": 90
+		},
+		"gameids": [
+			9865,
+			9965
+		]
+	},
+	{
+		"tier": 3,
+		"key": "A",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/1f/09/bd/1f09bda3dd574fcd191f4df0a7ebc264.jpg",
+		"xp_to_level": 7610,
+		"colors": {
+			"red": 0,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 112,
+			"accel": 112,
+			"turn": 112,
+			"brake": 112,
+			"health": 1360,
+			"stamina": 3288,
+			"carryweight": 90
+		},
+		"gameids": [
+			9811,
+			9911
+		]
+	},
+	{
+		"tier": 3,
+		"key": "B",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/c2/0d/29/c20d2984050f91dad299ed19a6edc134.jpg",
+		"xp_to_level": 7610,
+		"colors": {
+			"red": 0,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 112,
+			"accel": 112,
+			"turn": 112,
+			"brake": 112,
+			"health": 1360,
+			"stamina": 3272,
+			"carryweight": 90
+		},
+		"gameids": [
+			9812,
+			9912
+		]
+	},
+	{
+		"tier": 3,
+		"key": "C",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/f9/51/4a/f9514ac29b1afccb01d79a2f661afd7e.jpg",
+		"xp_to_level": 7610,
+		"colors": {
+			"red": 1,
+			"white": 2,
+			"black": 1
+		},
+		"stats": {
+			"speed": 113.5,
+			"accel": 113.5,
+			"turn": 110.5,
+			"brake": 110.5,
+			"health": 1351,
+			"stamina": 3284,
+			"carryweight": 90
+		},
+		"gameids": [
+			9822,
+			9922
+		]
+	},
+	{
+		"tier": 3,
+		"key": "D",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/24/1a/29/241a29f9fdd336e3d843e450d8ebfe16.jpg",
+		"xp_to_level": 7610,
+		"colors": {
+			"red": 1,
+			"white": 1,
+			"black": 2
+		},
+		"stats": {
+			"speed": 115,
+			"accel": 115,
+			"turn": 113.5,
+			"brake": 113.5,
+			"health": 1369,
+			"stamina": 3276,
+			"carryweight": 90
+		},
+		"gameids": [
+			9824,
+			9924
+		]
+	},
+	{
+		"tier": 3,
+		"key": "E",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/42/0a/0e/420a0e79629a1563b553d44c010c5ce6.jpg",
+		"xp_to_level": 7610,
+		"colors": {
+			"red": 2,
+			"white": 1,
+			"black": 1
+		},
+		"stats": {
+			"speed": 112,
+			"accel": 112,
+			"turn": 112,
+			"brake": 112,
+			"health": 1360,
+			"stamina": 3404,
+			"carryweight": 135
+		},
+		"gameids": [
+			9827,
+			9927
+		]
+	},
+	{
+		"tier": 3,
+		"key": "F",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/2f/68/9c/2f689c3a0b714093c0123322058ecb8e.jpg",
+		"xp_to_level": 7610,
+		"colors": {
+			"red": 3,
+			"white": 0,
+			"black": 1
+		},
+		"stats": {
+			"speed": 110.5,
+			"accel": 110.5,
+			"turn": 113.5,
+			"brake": 113.5,
+			"health": 1369,
+			"stamina": 3392,
+			"carryweight": 135
+		},
+		"gameids": [
+			9866,
+			9966
+		]
+	},
+	{
+		"tier": 4,
+		"key": "A",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/d7/64/65/d764654fd5583ce0a11e2de1b2919e5b.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 0,
+			"white": 3,
+			"black": 2
+		},
+		"stats": {
+			"speed": 116.5,
+			"accel": 116.5,
+			"turn": 113.5,
+			"brake": 113.5,
+			"health": 1441,
+			"stamina": 3296,
+			"carryweight": 90
+		},
+		"gameids": [
+			9806,
+			9906
+		]
+	},
+	{
+		"tier": 4,
+		"key": "B",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/0b/34/30/0b3430d34480bdaa1f2ec67a5dddd0e5.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 4,
+			"white": 0,
+			"black": 0
+		},
+		"stats": {
+			"speed": 114,
+			"accel": 114,
+			"turn": 112,
+			"brake": 112,
+			"health": 1360,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9808,
+			9908
+		]
+	},
+	{
+		"tier": 4,
+		"key": "C",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/4a/f2/da/4af2daec6b89a4efe310c266d14ceee7.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 2,
+			"white": 0,
+			"black": 3
+		},
+		"stats": {
+			"speed": 117.5,
+			"accel": 117.5,
+			"turn": 119.5,
+			"brake": 119.5,
+			"health": 1477,
+			"stamina": 3372,
+			"carryweight": 135
+		},
+		"gameids": [
+			9821,
+			9921
+		]
+	},
+	{
+		"tier": 4,
+		"key": "D",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/e5/87/4c/e5874cf25fe80b42c968c28c0a8f71bf.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3400.4,
+			"carryweight": 135
+		},
+		"gameids": [
+			9823,
+			9923
+		]
+	},
+	{
+		"tier": 4,
+		"key": "E",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/2f/de/a9/2fdea9bfffd5babd676f655ff2d5eb81.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 1,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 119.5,
+			"accel": 119.5,
+			"turn": 115,
+			"brake": 115,
+			"health": 1450,
+			"stamina": 3280,
+			"carryweight": 90
+		},
+		"gameids": [
+			9826,
+			9926
+		]
+	},
+	{
+		"tier": 4,
+		"key": "F",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/4b/27/26/4b2726dc63744898f34dc5fad09ddb59.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 2,
+			"white": 1,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118.5,
+			"accel": 118.5,
+			"turn": 116.5,
+			"brake": 116.5,
+			"health": 1459,
+			"stamina": 3388,
+			"carryweight": 135
+		},
+		"gameids": [
+			9828,
+			9928
+		]
+	},
+	{
+		"tier": 4,
+		"key": "G",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/5a/6d/cf/5a6dcf49c67581fe3e0b77b04d0f4123.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 1,
+			"white": 2,
+			"black": 1
+		},
+		"stats": {
+			"speed": 113.5,
+			"accel": 113.5,
+			"turn": 110.5,
+			"brake": 110.5,
+			"health": 1351,
+			"stamina": 3290,
+			"carryweight": 90
+		},
+		"gameids": [
+			9829,
+			9929
+		]
+	},
+	{
+		"tier": 4,
+		"key": "H",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/bd/a8/7a/bda87a031f4ea83a75373f289c6b2ecb.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 0,
+			"white": 4,
+			"black": 1
+		},
+		"stats": {
+			"speed": 119.5,
+			"accel": 119.5,
+			"turn": 110.5,
+			"brake": 110.5,
+			"health": 1423,
+			"stamina": 3304,
+			"carryweight": 90
+		},
+		"gameids": [
+			9830,
+			9930
+		]
+	},
+	{
+		"tier": 4,
+		"key": "I",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/44/60/6b/44606bf56beabd4baa8da381f5bab0fc.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 0,
+			"white": 0,
+			"black": 4
+		},
+		"stats": {
+			"speed": 114,
+			"accel": 114,
+			"turn": 118,
+			"brake": 118,
+			"health": 1396,
+			"stamina": 3240,
+			"carryweight": 90
+		},
+		"gameids": [
+			9831,
+			9931
+		]
+	},
+	{
+		"tier": 4,
+		"key": "J",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/26/a6/9b/26a69b49588d456f1d24826eec6f90ee.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 1,
+			"white": 1,
+			"black": 3
+		},
+		"stats": {
+			"speed": 118.5,
+			"accel": 118.5,
+			"turn": 118,
+			"brake": 118,
+			"health": 1468,
+			"stamina": 3264,
+			"carryweight": 90
+		},
+		"gameids": [
+			9834,
+			9934
+		]
+	},
+	{
+		"tier": 4,
+		"key": "K",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/6c/b1/64/6cb16483dfad410640f8336e7cffcddc.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 3,
+			"white": 1,
+			"black": 1
+		},
+		"stats": {
+			"speed": 118.5,
+			"accel": 118.5,
+			"turn": 115,
+			"brake": 115,
+			"health": 1450,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9837,
+			9937
+		]
+	},
+	{
+		"tier": 4,
+		"key": "L",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/d8/f8/4e/d8f84ee2b7013e7a4864ac1b5dd15c1a.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 1,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 115,
+			"accel": 115,
+			"turn": 115,
+			"brake": 115,
+			"health": 1450,
+			"stamina": 3286,
+			"carryweight": 90
+		},
+		"gameids": [
+			9838,
+			9938
+		]
+	},
+	{
+		"tier": 4,
+		"key": "M",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/aa/7c/36/aa7c36d450838f432be1b5da1f349abc.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 1,
+			"white": 2,
+			"black": 1
+		},
+		"stats": {
+			"speed": 113.5,
+			"accel": 113.5,
+			"turn": 110.5,
+			"brake": 110.5,
+			"health": 1351,
+			"stamina": 3290,
+			"carryweight": 90
+		},
+		"gameids": [
+			9839,
+			9939
+		]
+	},
+	{
+		"tier": 4,
+		"key": "N",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/2d/c0/f5/2dc0f5eead8f223ffa9007f95490d620.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 0
+		},
+		"stats": {
+			"speed": 115,
+			"accel": 115,
+			"turn": 109,
+			"brake": 109,
+			"health": 1342,
+			"stamina": 3420,
+			"carryweight": 135
+		},
+		"gameids": [
+			9840,
+			9940
+		]
+	},
+	{
+		"tier": 4,
+		"key": "O",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/36/66/d9/3666d90e51191c2a0361c503ca760ce2.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 0,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 112,
+			"accel": 112,
+			"turn": 112,
+			"brake": 112,
+			"health": 1360,
+			"stamina": 3280,
+			"carryweight": 90
+		},
+		"gameids": [
+			9841,
+			9941
+		]
+	},
+	{
+		"tier": 4,
+		"key": "P",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/d6/00/b5/d600b58107f9eea7eccb20bfe314efe0.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 3,
+			"white": 1,
+			"black": 1
+		},
+		"stats": {
+			"speed": 115,
+			"accel": 115,
+			"turn": 115,
+			"brake": 115,
+			"health": 1450,
+			"stamina": 3404,
+			"carryweight": 135
+		},
+		"gameids": [
+			9843,
+			9943
+		]
+	},
+	{
+		"tier": 4,
+		"key": "Q",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/82/3e/68/823e686ce5fa7dcf2c8e031fe4bd103e.jpg",
+		"xp_to_level": 10110,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3396,
+			"carryweight": 135
+		},
+		"gameids": [
+			9847,
+			9947
+		]
+	},
+	{
+		"tier": 5,
+		"key": "H",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/eb/bd/eb/ebbdeb12d391abec51f2318c084420d5.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 1,
+			"white": 1,
+			"black": 4
+		},
+		"stats": {
+			"speed": 113.5,
+			"accel": 113.5,
+			"turn": 122.5,
+			"brake": 122.5,
+			"health": 1567,
+			"stamina": 3258,
+			"carryweight": 90
+		},
+		"gameids": [
+			9833,
+			9933
+		]
+	},
+	{
+		"tier": 5,
+		"key": "I",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/b6/54/e1/b654e191c1fa2cafc59fe347d3bdf93f.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 123,
+			"accel": 123,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3396,
+			"carryweight": 135
+		},
+		"gameids": [
+			9836,
+			9936
+		]
+	},
+	{
+		"tier": 5,
+		"key": "A",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/a7/ef/cf/a7efcf0fdcc1f3931eaad29416a7f3fb.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 4,
+			"white": 1,
+			"black": 0
+		},
+		"stats": {
+			"speed": 116.5,
+			"accel": 116.5,
+			"turn": 113.5,
+			"brake": 113.5,
+			"health": 1441,
+			"stamina": 3408,
+			"carryweight": 135
+		},
+		"gameids": [
+			9844,
+			9944
+		]
+	},
+	{
+		"tier": 5,
+		"key": "B",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/51/f5/0d/51f50da588b19e765c9bd289cc66fbc0.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9848,
+			9948
+		]
+	},
+	{
+		"tier": 5,
+		"key": "C",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/3a/de/94/3ade94264d975b1bcb4124142aba3532.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 4,
+			"white": 1,
+			"black": 1
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9851,
+			9951
+		]
+	},
+	{
+		"tier": 5,
+		"key": "D",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/bf/fd/7d/bffd7d93d1826a796529d0359681704d.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 3,
+			"white": 0,
+			"black": 2
+		},
+		"stats": {
+			"speed": 117.5,
+			"accel": 117.5,
+			"turn": 118,
+			"brake": 118,
+			"health": 1468,
+			"stamina": 3384,
+			"carryweight": 135
+		},
+		"gameids": [
+			9857,
+			9957
+		]
+	},
+	{
+		"tier": 5,
+		"key": "E",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/c6/dc/51/c6dc51f2cc7c052cd66352aaf6bb65ae.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 0,
+			"white": 3,
+			"black": 3
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3284,
+			"carryweight": 90
+		},
+		"gameids": [
+			9858,
+			9958
+		]
+	},
+	{
+		"tier": 5,
+		"key": "F",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/f9/e0/da/f9e0daca15323f3b9ecd7e027008500f.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 2,
+			"white": 1,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118.5,
+			"accel": 118.5,
+			"turn": 116.5,
+			"brake": 116.5,
+			"health": 1459,
+			"stamina": 3392,
+			"carryweight": 135
+		},
+		"gameids": [
+			9859,
+			9959
+		]
+	},
+	{
+		"tier": 5,
+		"key": "G",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/ea/8c/24/ea8c2453c2c14970ddef37db15388a7c.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 1
+		},
+		"stats": {
+			"speed": 116.5,
+			"accel": 116.5,
+			"turn": 113.5,
+			"brake": 113.5,
+			"health": 1441,
+			"stamina": 3408,
+			"carryweight": 135
+		},
+		"gameids": [
+			9860,
+			9960
+		]
+	},
+	{
+		"tier": 5,
+		"key": "J",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/86/00/a0/8600a0f755c95ca8f053d41fdae9f3b6.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 0,
+			"white": 0,
+			"black": 5
+		},
+		"stats": {
+			"speed": 117.5,
+			"accel": 117.5,
+			"turn": 122.5,
+			"brake": 122.5,
+			"health": 1495,
+			"stamina": 3240,
+			"carryweight": 90
+		},
+		"gameids": [
+			9802,
+			9902
+		]
+	},
+	{
+		"tier": 5,
+		"key": "K",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/ef/e3/ee/efe3ee5edf47ce696f4833fdbf93ddf4.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 0,
+			"white": 5,
+			"black": 0
+		},
+		"stats": {
+			"speed": 122.5,
+			"accel": 122.5,
+			"turn": 107.5,
+			"brake": 107.5,
+			"health": 1405,
+			"stamina": 3320,
+			"carryweight": 90
+		},
+		"gameids": [
+			9804,
+			9904
+		]
+	},
+	{
+		"tier": 5,
+		"key": "L",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/13/84/ac/1384acd366e4ed1f86da86a04bd4dca5.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 0,
+			"white": 0,
+			"black": 5
+		},
+		"stats": {
+			"speed": 117.5,
+			"accel": 117.5,
+			"turn": 122.5,
+			"brake": 122.5,
+			"health": 1495,
+			"stamina": 3240,
+			"carryweight": 90
+		},
+		"gameids": [
+			9813,
+			9913
+		]
+	},
+	{
+		"tier": 5,
+		"key": "M",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/36/61/2b/36612b45d30dd9cd8f9dac32f0c58706.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 0,
+			"white": 2,
+			"black": 4
+		},
+		"stats": {
+			"speed": 115,
+			"accel": 115,
+			"turn": 121,
+			"brake": 121,
+			"health": 1558,
+			"stamina": 3264,
+			"carryweight": 90
+		},
+		"gameids": [
+			9816,
+			9916
+		]
+	},
+	{
+		"tier": 5,
+		"key": "N",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/03/6a/f2/036af22aa077f24433a3e09dfa01a6fa.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 4,
+			"white": 0,
+			"black": 2
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 121,
+			"brake": 121,
+			"health": 1558,
+			"stamina": 3388,
+			"carryweight": 135
+		},
+		"gameids": [
+			9818,
+			9918
+		]
+	},
+	{
+		"tier": 5,
+		"key": "O",
+		"gamecode": "",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/5f/93/80/5f9380c359589e0c27404fd51a1c641f.jpg",
+		"xp_to_level": 12615,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9825,
+			9925
+		]
+	},
+	{
+		"tier": 6,
+		"key": "A",
+		"gamecode": "1",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/29/8f/eb/298febc780dcfc4f6eaf4ba96bd3099d.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 0,
+			"white": 0,
+			"black": 6
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 127,
+			"brake": 127,
+			"health": 1594,
+			"stamina": 3240,
+			"carryweight": 90
+		},
+		"gameids": [
+			9809,
+			9909
+		]
+	},
+	{
+		"tier": 6,
+		"key": "B",
+		"gamecode": "2",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/0f/b8/73/0fb873f88f18d288211cd3c43d96dae1.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 121,
+			"brake": 121,
+			"health": 1630,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9815,
+			9915
+		]
+	},
+	{
+		"tier": 6,
+		"key": "C",
+		"gamecode": "3",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/3c/51/79/3c51796a93d0ab3460869df43a30347f.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 1,
+			"black": 3
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 124,
+			"brake": 124,
+			"health": 1648,
+			"stamina": 3386,
+			"carryweight": 135
+		},
+		"gameids": [
+			9819,
+			9919
+		]
+	},
+	{
+		"tier": 6,
+		"key": "D",
+		"gamecode": "4",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/32/44/2a/32442ae245550b34355e46770db89f18.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 0,
+			"white": 3,
+			"black": 3
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3280,
+			"carryweight": 90
+		},
+		"gameids": [
+			9820,
+			9920
+		]
+	},
+	{
+		"tier": 6,
+		"key": "E",
+		"gamecode": "5",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/37/a6/9f/37a69f18105648c89a7785ace1221e9b.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 2,
+			"white": 2,
+			"black": 3
+		},
+		"stats": {
+			"speed": 119.5,
+			"accel": 119.5,
+			"turn": 122.5,
+			"brake": 122.5,
+			"health": 1639,
+			"stamina": 3399.6,
+			"carryweight": 135
+		},
+		"gameids": [
+			9835,
+			9935
+		]
+	},
+	{
+		"tier": 6,
+		"key": "F",
+		"gamecode": "6",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/49/5f/01/495f0183086c55b542571b940d6fb814.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 0,
+			"white": 2,
+			"black": 5
+		},
+		"stats": {
+			"speed": 116.5,
+			"accel": 116.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1657,
+			"stamina": 3256,
+			"carryweight": 90
+		},
+		"gameids": [
+			9842,
+			9942
+		]
+	},
+	{
+		"tier": 6,
+		"key": "G",
+		"gamecode": "7",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/21/15/ee/2115eeda915c7f8027d04693df621bea.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 3,
+			"black": 0
+		},
+		"stats": {
+			"speed": 122.5,
+			"accel": 122.5,
+			"turn": 113.5,
+			"brake": 113.5,
+			"health": 1513,
+			"stamina": 3420,
+			"carryweight": 135
+		},
+		"gameids": [
+			9846,
+			9946
+		]
+	},
+	{
+		"tier": 6,
+		"key": "H",
+		"gamecode": "8",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/0c/32/db/0c32db1dbe44fedb9abf551d6493ed84.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 3,
+			"black": 2
+		},
+		"stats": {
+			"speed": 125.5,
+			"accel": 125.5,
+			"turn": 122.5,
+			"brake": 122.5,
+			"health": 1711,
+			"stamina": 3402,
+			"carryweight": 135
+		},
+		"gameids": [
+			9849,
+			9949
+		]
+	},
+	{
+		"tier": 6,
+		"key": "I",
+		"gamecode": "9",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/be/9f/3e/be9f3e9b1413a56bcfc9736399787bc2.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 2,
+			"white": 0,
+			"black": 5
+		},
+		"stats": {
+			"speed": 124.5,
+			"accel": 124.5,
+			"turn": 128.5,
+			"brake": 128.5,
+			"health": 1675,
+			"stamina": 3372,
+			"carryweight": 135
+		},
+		"gameids": [
+			9850,
+			9950
+		]
+	},
+	{
+		"tier": 6,
+		"key": "J",
+		"gamecode": "10",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/50/2d/64/502d649a1c2b0b724305bf026ae094d4.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 121,
+			"brake": 121,
+			"health": 1630,
+			"stamina": 3399.6,
+			"carryweight": 135
+		},
+		"gameids": [
+			9852,
+			9952
+		]
+	},
+	{
+		"tier": 6,
+		"key": "K",
+		"gamecode": "11",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/cb/1a/e6/cb1ae6b7cefa93a0f6e7892541b7f5fd.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 121,
+			"brake": 121,
+			"health": 1630,
+			"stamina": 3400,
+			"carryweight": 135
+		},
+		"gameids": [
+			9853,
+			9953
+		]
+	},
+	{
+		"tier": 6,
+		"key": "L",
+		"gamecode": "12",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/7f/2b/a9/7f2ba90bd364ed4e2a77c3fe1f7c0b5a.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 0,
+			"white": 3,
+			"black": 3
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 118,
+			"brake": 118,
+			"health": 1540,
+			"stamina": 3280,
+			"carryweight": 90
+		},
+		"gameids": [
+			9854,
+			9954
+		]
+	},
+	{
+		"tier": 6,
+		"key": "M",
+		"gamecode": "13",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/1d/98/e5/1d98e5b9ea24f96579556f2969b492eb.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 4,
+			"white": 0,
+			"black": 3
+		},
+		"stats": {
+			"speed": 116.5,
+			"accel": 116.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1657,
+			"stamina": 3386,
+			"carryweight": 135
+		},
+		"gameids": [
+			9855,
+			9955
+		]
+	},
+	{
+		"tier": 6,
+		"key": "N",
+		"gamecode": "14",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/6a/77/bf/6a77bfd31118da9726c43c365e5ec70a.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 4,
+			"black": 0
+		},
+		"stats": {
+			"speed": 127,
+			"accel": 127,
+			"turn": 115,
+			"brake": 115,
+			"health": 1594,
+			"stamina": 3424,
+			"carryweight": 135
+		},
+		"gameids": [
+			9856,
+			9956
+		]
+	},
+	{
+		"tier": 6,
+		"key": "U",
+		"gamecode": "15",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/f7/10/c4/f710c439df08f21169c774993d50342f.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 3
+		},
+		"stats": {
+			"speed": 122.5,
+			"accel": 122.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1729,
+			"stamina": 3272,
+			"carryweight": 90
+		},
+		"gameids": [
+			9870,
+			9970
+		]
+	},
+	{
+		"tier": 6,
+		"key": "T",
+		"gamecode": "16",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/a9/da/64/a9da647080b85669a9da67efa96c5302.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 121,
+			"brake": 121,
+			"health": 1630,
+			"stamina": 3276,
+			"carryweight": 90
+		},
+		"gameids": [
+			9873,
+			9973
+		]
+	},
+	{
+		"tier": 6,
+		"key": "Q",
+		"gamecode": "17",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/e7/38/fc/e738fce13fd066e8ea1a8953753010bc.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 3
+		},
+		"stats": {
+			"speed": 122.5,
+			"accel": 122.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1729,
+			"stamina": 3392,
+			"carryweight": 135
+		},
+		"gameids": [
+			9874,
+			9974
+		]
+	},
+	{
+		"tier": 6,
+		"key": "R",
+		"gamecode": "18",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/70/b7/7b/70b77bc51561eca6d032940fea68d07b.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 1,
+			"white": 2,
+			"black": 4
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 124,
+			"brake": 124,
+			"health": 1648,
+			"stamina": 3268,
+			"carryweight": 90
+		},
+		"gameids": [
+			9875,
+			9975
+		]
+	},
+	{
+		"tier": 6,
+		"key": "P",
+		"gamecode": "20",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/76/02/67/760267c800ff0176a1135803e2ca2946.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 5,
+			"white": 0,
+			"black": 2
+		},
+		"stats": {
+			"speed": 118,
+			"accel": 118,
+			"turn": 124,
+			"brake": 124,
+			"health": 1648,
+			"stamina": 3388,
+			"carryweight": 135
+		},
+		"gameids": [
+			9881,
+			9981
+		]
+	},
+	{
+		"tier": 6,
+		"key": "S",
+		"gamecode": "19",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/4d/92/ee/4d92eee624ede01edcbce9c4cb1a7adf.jpg",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 3
+		},
+		"stats": {
+			"speed": 122.5,
+			"accel": 122.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1729,
+			"stamina": 3272,
+			"carryweight": 90
+		},
+		"gameids": [
+			9878,
+			9978
+		]
+	},
+	{
+		"tier": 6,
+		"key": "O",
+		"gamecode": "21",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/b5/fb/37/b5fb3782dbfad1b6956e1964d324bae9.png",
+		"xp_to_level": 15115,
+		"colors": {
+			"red": 3,
+			"white": 2,
+			"black": 3
+		},
+		"stats": {
+			"speed": 122.5,
+			"accel": 122.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1729,
+			"stamina": 3272,
+			"carryweight": 90
+		},
+		"gameids": [
+			9985
+		]
+	},
+	{
+		"tier": 7,
+		"key": "A",
+		"gamecode": "1",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/ae/fb/59/aefb594437a94afe5e61e5790e1f1d41.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 7,
+			"white": 0,
+			"black": 0
+		},
+		"stats": {
+			"speed": 128.7,
+			"accel": 128.7,
+			"turn": 121,
+			"brake": 121,
+			"health": 1630,
+			"stamina": 3520,
+			"carryweight": 180
+		},
+		"gameids": [
+			9817,
+			9917
+		]
+	},
+	{
+		"tier": 7,
+		"key": "B",
+		"gamecode": "2",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/87/54/81/87548114e9bae63d496482da9ffc6a77.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 0,
+			"white": 7,
+			"black": 0
+		},
+		"stats": {
+			"speed": 131.5,
+			"accel": 131.5,
+			"turn": 110.5,
+			"brake": 110.5,
+			"health": 1567,
+			"stamina": 3320,
+			"carryweight": 90
+		},
+		"gameids": [
+			9845,
+			9945
+		]
+	},
+	{
+		"tier": 7,
+		"key": "C",
+		"gamecode": "3",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/88/ea/c4/88eac4a9cd39a788197d5c5603c011f9.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 0,
+			"white": 0,
+			"black": 7
+		},
+		"stats": {
+			"speed": 127.3,
+			"accel": 127.3,
+			"turn": 131.5,
+			"brake": 131.5,
+			"health": 1693,
+			"stamina": 3240,
+			"carryweight": 90
+		},
+		"gameids": [
+			9861,
+			9961
+		]
+	},
+	{
+		"tier": 7,
+		"key": "E",
+		"gamecode": "4",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/8e/86/6a/8e866a2dd260770884cdc262ff891fcb.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 0,
+			"white": 3,
+			"black": 5
+		},
+		"stats": {
+			"speed": 121,
+			"accel": 121,
+			"turn": 127,
+			"brake": 127,
+			"health": 1738,
+			"stamina": 3272,
+			"carryweight": 90
+		},
+		"gameids": [
+			9867,
+			9967
+		]
+	},
+	{
+		"tier": 7,
+		"key": "D",
+		"gamecode": "7",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/8b/46/65/8b4665ff9fdca874358358f88c60b6e9.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 0,
+			"white": 5,
+			"black": 3
+		},
+		"stats": {
+			"speed": 127,
+			"accel": 127,
+			"turn": 121,
+			"brake": 121,
+			"health": 1702,
+			"stamina": 3408,
+			"carryweight": 135
+		},
+		"gameids": [
+			9872,
+			9972
+		]
+	},
+	{
+		"tier": 7,
+		"key": "H",
+		"gamecode": "6",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/ef/e2/ef/efe2ef56ceedd5cc17ff649008c78bc1.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 3,
+			"white": 3,
+			"black": 3
+		},
+		"stats": {
+			"speed": 127,
+			"accel": 127,
+			"turn": 127,
+			"brake": 127,
+			"health": 1810,
+			"stamina": 3400.4,
+			"carryweight": 135
+		},
+		"gameids": [
+			9869,
+			9969
+		]
+	},
+	{
+		"tier": 7,
+		"key": "G",
+		"gamecode": "5",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/d6/76/86/d67686727fcd3cfacc393d11dfeba4bd.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 4,
+			"white": 2,
+			"black": 2
+		},
+		"stats": {
+			"speed": 124,
+			"accel": 124,
+			"turn": 124,
+			"brake": 124,
+			"health": 1720,
+			"stamina": 3280,
+			"carryweight": 90
+		},
+		"gameids": [
+			9868,
+			9968
+		]
+	},
+	{
+		"tier": 7,
+		"key": "J",
+		"gamecode": "8",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/55/35/a8/5535a8c9f1146e80977583099e460476.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 4,
+			"white": 2,
+			"black": 3
+		},
+		"stats": {
+			"speed": 125.5,
+			"accel": 125.5,
+			"turn": 128.5,
+			"brake": 128.5,
+			"health": 1819,
+			"stamina": 3395.2,
+			"carryweight": 135
+		},
+		"gameids": [
+			9877,
+			9977
+		]
+	},
+	{
+		"tier": 7,
+		"key": "I",
+		"gamecode": "9",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/cc/d7/40/ccd7408154c67d64748291db2d26b566.jpg",
+		"xp_to_level": 17620,
+		"colors": {
+			"red": 0,
+			"white": 5,
+			"black": 3
+		},
+		"stats": {
+			"speed": 127,
+			"accel": 127,
+			"turn": 121,
+			"brake": 121,
+			"health": 1702,
+			"stamina": 3296,
+			"carryweight": 90
+		},
+		"gameids": [
+			9882,
+			9982
+		]
+	},
+	{
+		"tier": 8,
+		"key": "B",
+		"gamecode": "1",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/06/9d/84/069d84895cf021869308dd9d4649eb73.jpg",
+		"xp_to_level": 20120,
+		"colors": {
+			"red": 2,
+			"white": 4,
+			"black": 3
+		},
+		"stats": {
+			"speed": 128.5,
+			"accel": 128.5,
+			"turn": 125.5,
+			"brake": 125.5,
+			"health": 1801,
+			"stamina": 3289.2,
+			"carryweight": 90
+		},
+		"gameids": [
+			9871,
+			9971
+		]
+	},
+	{
+		"tier": 8,
+		"key": "D",
+		"gamecode": "2",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/d2/6d/b9/d26db9bfea2d44f7a42257138d3dd468.jpg",
+		"xp_to_level": 20120,
+		"colors": {
+			"red": 5,
+			"white": 3,
+			"black": 1
+		},
+		"stats": {
+			"speed": 130,
+			"accel": 130,
+			"turn": 124,
+			"brake": 124,
+			"health": 1792,
+			"stamina": 3408,
+			"carryweight": 135
+		},
+		"gameids": [
+			9876,
+			9976
+		]
+	},
+	{
+		"tier": 8,
+		"key": "A",
+		"gamecode": "3",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/3b/ce/13/3bce1332fbea7e98e08c6262ba0075ce.jpg",
+		"xp_to_level": 20120,
+		"colors": {
+			"red": 0,
+			"white": 6,
+			"black": 3
+		},
+		"stats": {
+			"speed": 131.5,
+			"accel": 131.5,
+			"turn": 122.5,
+			"brake": 122.5,
+			"health": 1783,
+			"stamina": 3296,
+			"carryweight": 90
+		},
+		"gameids": [
+			9879,
+			9979
+		]
+	},
+	{
+		"tier": 8,
+		"key": "C",
+		"gamecode": "4",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/4e/28/48/4e28483cfc5af1df5f1f1e80167adc26.jpg",
+		"xp_to_level": 20120,
+		"colors": {
+			"red": 0,
+			"white": 0,
+			"black": 8
+		},
+		"stats": {
+			"speed": 128.8,
+			"accel": 128.8,
+			"turn": 136,
+			"brake": 136,
+			"health": 1792,
+			"stamina": 3360,
+			"carryweight": 135
+		},
+		"gameids": [
+			9880,
+			9980
+		]
+	},
+	{
+		"tier": 8,
+		"key": "E",
+		"gamecode": "5",
+		"img": "https://s-media-cache-ak0.pinimg.com/originals/d2/6a/da/d26ada157297097fe093b0004a72fd06.jpg",
+		"xp_to_level": 20120,
+		"colors": {
+			"red": 0,
+			"white": 8,
+			"black": 0
+		},
+		"stats": {
+			"speed": 136,
+			"accel": 136,
+			"turn": 112,
+			"brake": 112,
+			"health": 1648,
+			"stamina": 3440,
+			"carryweight": 135
+		},
+		"gameids": [
+			9883,
+			9983
+		]
+	}
+];
+
+
+	var stats = {};
+  // Calculate min/max for each stat for each tier
+  for( var i in info ) {
+  	var tier = info[i].tier;
+    info[i].img = 'http://www.somethinglovely.net/bdo/horses/img/'+ info[i].tier + info[i].key + '.png';
+
+  	if( !stats[tier] ) {
+    
+    	// We're going to store [min,max]
+    	stats[tier] = {
+      	speed: [999999,0],
+        accel: [999999,0],
+        turn: [999999,0],
+        brake: [999999,0],
+        health: [999999,0],
+        stamina: [999999,0],
+        carryweight: [999999,0]
+      }
+    }
+    
+    for( var stat in stats[tier] ) {
+    	if( stats[tier][stat][0] > info[i].stats[stat] ) {
+      	stats[tier][stat][0] = info[i].stats[stat];
+      }
+      if( stats[tier][stat][1] < info[i].stats[stat] ) {
+      	stats[tier][stat][1] = info[i].stats[stat];
+      }
+    }
+  }
+  
+  for( var i in info ) {
+  	var tier = info[i].tier;
+  	for( var stat in stats[tier] ) {
+    	var amt = info[i].stats[stat] - stats[tier][stat][0];
+      var statrange = stats[tier][stat][1] - stats[tier][stat][0];
+      if(!statrange) {
+      	statrange = 1;
+        amt = 1;
+      }
+      info[i].stats[stat+'_grade'] = Math.round( (amt/statrange) * 10 );
+    }
+  }
+
+	return info.filter(function(e){
+		return !e['unavailable'];
+	});
+};
+
+
+// maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths
+// console.log(breedingOutcomeForResultTier(breedingTier( maleTier, maleLevel, maleDeaths, femaleTier, femaleLevel, femaleDeaths )));
+        
+        //FLAG
+        
+    maleTier = 1;
+    maleLevel = 1;
+    femaleTier = 1;
+    femaleLevel = 1;
+    
+    bigstr = '[';
+    
+    MT = 8;
+    FT = 8;
+    
+    for (ml = 1;ml <= 30;ml++) {
+        for (mt = MT;mt <= MT;mt++) {
+            for (fl = 1;fl <= 30;fl++) {
+                for (ft = FT;ft <= FT;ft++) {
+                
+                maleTier = mt;
+                maleLevel = ml;
+                femaleTier = ft;
+                femaleLevel = fl;
+    
+                    // str = '('
+                    
+                    // str += ('((' + maleLevel + ',' + maleTier + '), (' + femaleLevel + ',' + femaleTier + '))' );
+                    
+                    // str += ',[';
+                    
+                    str = '((' + maleLevel + ',' + maleTier + '),(' + femaleLevel + ',' + femaleTier + '),[';
+                    
+                    breedingOutcomeForResultTier(breedingTier( maleTier, maleLevel, 0, femaleTier, femaleLevel, 0 )).map(obj => {
+                        delete obj.grade; 
+                        
+                        str += '("' + obj.gender + '",' + obj.tier + ',' + obj.percentage + '), ';
+                        
+                    });
+                    
+                    // str += ']';
+                    str = str.slice(0,-2);
+                    str += '])';
+    
+                    //console.log(str);
+                    
+                    bigstr += str + ', ';
+    
+                }
+            }
+        }
+    }
+    
+    bigstr = bigstr.slice(0,-2);
+    
+    bigstr += ']';
+    
+    // console.log(bigstr);
+    
+    
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(bigstr));
+      element.setAttribute('download', MT + '' + FT + '.txt');
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    
+    
+
+
+</script>
+
+</head>
+<body>
+<myinfo></myinfo>
+  <script type="text/x-template" id="status-message-template">
+	<section class="status-message" v-show="!hidden">
+		<div class="status-message-inner">
+		<span class="close" v-on:click="hide"><b>✕</b> Hide</span>
+		<p style="line-height: 2"><span class="pulse-off"></span> <b style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-right: 5px;">MENA/SEA players: change Breeding Rate in top right before using the calculator (probably 9 until increased in patch)</b></p>
+	</section>
+</script>
+
+<script type="text/x-template" id="number-picker-template">
+	<ul class="number-picker">
+		<template v-for="i in range">
+			<li v-on:click="select(i)" v-bind:class="{ selected: i == current }">{{i}}</li>
+		</template>
+	</ul>
+</script>
+
+<script type="text/x-template" id="tier-outcome-template">
+	<span class="{{className}}">
+		<span v-for="outcome in data" v-bind:class="[ 'gender-'+outcome.gender ]"><strong>{{ outcome.tier }}{{ outcome.gender | uppercase }}</strong>(<em class="pct" v-bind:title="outcome.percentage_precise | pct 3">{{ outcome.percentage + '%' }}</em>)<span class="comma">, </span></span></span>
+</script>
+
+<script type="text/x-template" id="horse-skin-picker-template">
+	<div class="horse-picker">
+		<label>Pattern</label>
+		<div v-if="selectedHorseSkin" v-bind:class="[ 'horse-icon', 'current', 'horse-tier-'+selectedTier]" v-on:click="startSelecting">
+				<h4>{{ selectedHorseSkin.tier }}<b>{{ selectedHorseSkin.key }}</b></h4>
+				<img v-bind:src="selectedHorseSkin.img">
+				<span class="colors">
+					<span class="r">{{ selectedHorseSkin.colors.red }}</span>
+					<span class="w">{{ selectedHorseSkin.colors.white }}</span>
+					<span class="b">{{ selectedHorseSkin.colors.black }}</span>
+				</span>
+        <span class="gamecode" v-if="horse.gamecode">{{horse.tier}}-{{horse.gamecode}}</span>
+		</div>
+	<ul class="horses" v-if="isSelecting">
+		<template v-for="horse in skins | filterBy selectedTier in 'tier'">
+			<li v-bind:class="[
+				'horse-icon',
+				'horse-tier-'+horse.tier,
+				{ selected: horse.tier == selectedTier &&
+				            horse.key == selectedKey } ]"
+				v-on:click="pickSkin( horse.key )"
+			>
+				<h4>{{ horse.tier }}<b>{{ horse.key }}</b></h4>
+				<img v-bind:src="horse.img">
+				<span class="colors">
+					<span class="r">{{ horse.colors.red }}</span>
+					<span class="w">{{ horse.colors.white }}</span>
+					<span class="b">{{ horse.colors.black }}</span>
+				</span>
+        <span class="gamecode" v-if="horse.gamecode">{{horse.tier}}-{{horse.gamecode}}</span>
+			</li>
+		</template>
+	</ul>
+	</div>
+</script>
+
+<script type="text/x-template" id="quick-result-bar-template">
+	<section class="quick-result-bar">
+			<p class="outcome">
+				<tier-outcome :data="outcomeForCurrentTier" class-name="results"></tier-outcome>
+			</p>
+			<p class="next" v-if="hasNextTier">To reach the next tier of possible results
+				<tier-outcome :data="outcomeForNextTier" class-name="next-results"></tier-outcome>
+		 		you should train your horses to the following levels:
+
+				<span v-for="levelsRequired in levelsRequiredForNextTier" class="threshold" v-on:click="selectNewLevels(levelsRequired.male,levelsRequired.female)">
+				<span class="gender-m"><strong>{{levelsRequired.male}}</strong></span>+<span class="gender-f"><strong>{{levelsRequired.female}}</strong></span></p>
+				</span>
+			<p class="next last" v-else>This is the maximum tier of possible results for a <b>Tier {{maleTier}}</b> male and <b>Tier {{femaleTier}}</b> female.</p>
+	</section>
+</script>
+
+<script type="text/x-template" id="horse-skin-results-template">
+	<section class="skin-results">
+  <label class="show-all-results" title="Show all horses, even ones that breeding these 2 horses cannot produce">Show All <input type="checkbox" v-model="showAll"></label>
+	<ul class="horse-skin-results horses">
+		<template v-for="horse in availableHorses">
+			<li v-bind:class="[ 'horse-icon', 'horse-tier-'+horse.tier, { 'available': currentOutcomeLevels.indexOf(horse.tier) >= 0 } ]">
+				<h4>{{ horse.tier }}<b>{{ horse.key }}</b></h4>
+				<img v-bind:src="horse.img">
+				<span class="colors">
+					<span class="r">{{ horse.colors.red }}</span>
+					<span class="w">{{ horse.colors.white }}</span>
+					<span class="b">{{ horse.colors.black }}</span>
+				</span>
+        <div class="tooltip">
+        	<dl>
+          	<dt>Speed</dt>
+            <dd class="grade-{{horse.stats.speed_grade}}">{{horse.stats.speed}}%</dd>
+            <dt>Accel</dt>
+            <dd class="grade-{{horse.stats.accel_grade}}">{{horse.stats.accel}}%</dd>
+            <dt>Turn</dt>
+            <dd class="grade-{{horse.stats.turn_grade}}">{{horse.stats.turn}}%</dd>
+            <dt>Brake</dt>
+            <dd class="grade-{{horse.stats.brake_grade}}">{{horse.stats.brake}}%</dd>
+            <dt>Health</dt>
+            <dd class="grade-{{horse.stats.health_grade}}">{{horse.stats.health}}</dd>
+            <dt>Stamina</dt>
+            <dd class="grade-{{horse.stats.stamina_grade}}">{{horse.stats.stamina}}</dd>
+            <dt>Carry</dt>
+            <dd class="grade-{{horse.stats.carryweight_grade}}">{{horse.stats.carryweight}}LT</dd>
+          </dl>
+          <p v-if="currentOutcomeLevels.indexOf(horse.tier) < 0">Your horses are too high or low level for a result in this tier</p>
+        </div>
+			</li>
+		</template>
+	</ul>
+</script>
+
+<script type="text/x-template" id="tier-list-template">
+	<ul class="tier-list">
+		<template v-for="(index, tierOutcomes) in tiers">
+			<li v-bind:class="{
+				selected: index == currentTier, 
+				highlighted: index == highlightedTier,
+				impossible: currentOutcomeTiers.indexOf(index) < 0
+			}" >
+				<h4 v-bind:class="[ 'tier-' +(index) ]">{{index}}</h4>
+				<span class="bar">
+				<template v-for="outcome in tierOutcomes">
+				<span v-bind:class="[ 'gender-'+outcome.gender ]" v-bind:style="{ 'flex-basis': outcome.percentage + '%' }" title="{{ outcome.percentage + '%' }}">{{ outcome.tier }}{{ outcome.gender }} (<em class="pct" v-bind:title="outcome.percentage_precise | pct 3">{{ outcome.percentage + '%' }}</em>)</span>
+				</template>
+				</span>
+			</li>
+		</template>
+	</ul>
+</script>
+
+<script type="text/x-template" id="tier-grid-template">
+	<div>
+  <table cellspacing="0" v-on:mouseout="highlightTier(null,null,null)" v-bind:class="['highlighted-col-'+highlightedMaleLevel]">
+    <thead>
+			<tr>
+				<th></th>
+				<th></th>
+				<th colspan="30" class="gender-male">Male Tier {{maleTier}}</th></tr>
+      <tr>
+					<td></td>
+					<td></td>
+					<template v-for="(index, item) in data">
+						<th>{{ index+1 }}</th>
+					</template>
+					</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="(rowindex, row) in data" track-by="$index">
+				<th v-if="!rowindex" rowspan="30" class="gender-female"><span>Female Tier {{femaleTier}}</span></th>
+				<th>{{ rowindex+1 }}</th>
+        <td v-for="(colindex, tier) in row" track-by="$index"
+					v-bind:class="[
+					'tier-' +tier,
+					{'selected-col': (colindex+1 == maleLevel),
+					'selected-row': (rowindex+1 == femaleLevel) }
+					]"
+					title="Male: {{colindex+1}}, Female: {{rowindex+1}}"
+					 v-on:mouseover="highlightTier(colindex+1,rowIndex+1,tier)"
+				>
+          {{ tier }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+	</div>
+</script>
+
+<!-- demo root element -->
+<div id="app">
+	<section class="form">
+  	<div v-bind:class="['male','horse-tier-'+maleTier]">
+			<h2>Male</h2>
+
+			<div class="tier">
+				<label for="maleTier">Tier</label>
+				<number-picker :min="1" :max="8" :current.sync="maleTier"></number-picker>
+			</div>
+			
+			<div class="level">
+				<label for="maleLevel">Level</label>
+				<number-picker :min="1" :max="30" :current.sync="maleLevel"></number-picker>
+			</div>
+			
+			<div class="skin">
+				<horse-skin-picker :skins="horseSkins"
+					:selected-key.sync="maleSkinKey"
+					:selected-tier.sync="maleTier">
+				</horse-skin-picker>
+			</div>
+
+		</div>
+		<div v-bind:class="['female','horse-tier-'+femaleTier]">
+			<h2>Female</h2>
+
+			<div class="tier">
+				<label for="femaleTier">Tier</label>
+				<number-picker :min="1" :max="8" :current.sync="femaleTier"></number-picker>
+			</div>
+			
+			<div class="level">
+				<label for="femaleLevel">Level</label>
+			<number-picker :min="1" :max="30" :current.sync="femaleLevel"></number-picker>
+			</div>
+			
+			<div class="skin">
+				<horse-skin-picker :skins="horseSkins"
+					:selected-key.sync="femaleSkinKey"
+					:selected-tier.sync="femaleTier">
+				</horse-skin-picker>
+			</div>
+
+		</div>
+  	</form>
+	</section>
+	
+	<status-message></status-message>
+	
+	<quick-result-bar
+		:male-tier="maleTier"
+		:male-level.sync="maleLevel"
+		:male-deaths="maleDeaths"
+		:female-tier="femaleTier"
+		:female-level.sync="femaleLevel"
+		:female-deaths="femaleDeaths"
+    :rate="rate"
+	></quick-result-bar>
+	
+	<section class="tabs">
+		<span v-bind:class="['tab', {selected: selectedTab == 'details'}]" v-on:click="selectTab('details')">Details</span>
+		<span v-bind:class="['tab', {selected: selectedTab == 'horse-skins'}]" v-on:click="selectTab('horse-skins')">Horse Patterns</span>
+	</section>
+
+	<section class="section-outcome" v-show="selectedTab == 'details'">
+		<div class="section-outcome-tiers">
+			<div class="outcome-tier-list-wrapper">
+				<tier-list :tiers="tierOutcomes" :current-tier="currentResultTier" :current-outcome-tiers="currentOutcomeTiers" :highlighted-tier="highlightedTier" :rate="rate"></tier-list>
+			</div>
+			<div class="outcome-tier-grid-wrapper">
+  			<tier-grid
+					:data="tierGridData"
+					:male-level="maleLevel"
+					:female-level="femaleLevel"
+					:male-tier="maleTier"
+					:female-tier="femaleTier"
+					  :rate="rate"
+					
+				></tier-grid>
+			</div>
+		</div>
+		</section>
+
+		<div v-show="selectedTab == 'horse-skins'">
+	<horse-skin-results
+		:skins="horseSkins"
+		:outcome-tier="currentOutcomeTiers"
+		:current-breeding-outcome="currentBreedingOutcome"
+		:male-tier="maleTier"
+		:male-skin-key="maleSkinKey"
+		:female-tier="femaleTier"
+		:female-skin-key="femaleSkinKey"
+		:rate="rate"		
+	></horse-skin-results>
+	</div>
+
+	<p class="breeding-multiplier-rate-info" title="Change the region breeding rate. Ignore if you are on NA or EU servers.">
+	Breeding Rate <input type="number" size="2" min="1" max="20" v-model="rate" v-on:change="onRateChanged">
+	</p>
+</div>
+  
+  <script>
+    // tell the embed parent frame the height of the content
+    if (window.parent && window.parent.parent){
+      window.parent.parent.postMessage(["resultsFrame", {
+        height: document.body.getBoundingClientRect().height,
+        slug: "k5z99cus"
+      }], "*")
+    }
+  </script>
+</body>
+</html>
